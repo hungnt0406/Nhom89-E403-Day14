@@ -56,55 +56,102 @@ Báo cáo 5 Whys phải chỉ ra được lỗi nằm ở đâu: Ingestion pipel
 
 ## 🔧 Hướng dẫn chạy
 
+### 1. Chuẩn bị môi trường
+
+Khuyến nghị dùng virtual environment để tách dependency cho bài lab:
+
 ```bash
-# 1. Cài đặt dependencies
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+```
 
-# 1.5. Cấu hình OpenRouter để dùng 3 judge API thật (khuyến nghị)
-# Tạo file .env với ít nhất:
-# OPENROUTER_API_KEY=sk-or-...
-# JUDGE_MODE=openrouter
-#
-# Retrieval hiện dùng vector DB thật:
-# - Embedding model qua OpenRouter: OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
-# - Index cục bộ: ChromaDB PersistentClient tại thư mục `.chroma/`
-#
-# Mặc định code sẽ dùng 3 model judge giá vừa phải qua OpenRouter:
-# - openai/gpt-4.1-mini
-# - anthropic/claude-3.5-haiku
-# - google/gemini-2.5-flash
-#
-# Có thể override bằng:
-# OPENROUTER_GPT_MODEL=...
-# OPENROUTER_CLAUDE_MODEL=...
-# OPENROUTER_GEMINI_MODEL=...
-# OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
-#
-# Nếu để JUDGE_MODE=auto thì có key sẽ gọi OpenRouter, không có key sẽ fallback offline.
+Nếu dùng Windows PowerShell:
 
-# 2. Tạo Golden Dataset (chạy trước khi benchmark)
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+### 2. Cấu hình `.env`
+
+Copy file mẫu:
+
+```bash
+cp .env.example .env
+```
+
+Thiết lập tối thiểu trong `.env`:
+
+```bash
+OPENROUTER_API_KEY=sk-or-...
+JUDGE_MODE=auto
+```
+
+Các model mặc định giá vừa phải hiện dùng trong repo:
+
+```bash
+OPENROUTER_GPT_MODEL=openai/gpt-4.1-mini
+OPENROUTER_CLAUDE_MODEL=anthropic/claude-3.5-haiku
+OPENROUTER_GEMINI_MODEL=google/gemini-2.5-flash
+OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
+OPENROUTER_AGENT_MODEL=google/gemini-2.5-flash
+```
+
+Giải thích ngắn:
+- `JUDGE_MODE=auto`: có API key thì gọi OpenRouter, không có thì fallback offline.
+- `OPENROUTER_EMBEDDING_MODEL`: model embedding dùng để index/query ChromaDB.
+- `OPENROUTER_AGENT_MODEL`: model generation cho `RealEvaluationAgent`.
+
+### 3. Chạy nhanh theo đúng thứ tự
+
+```bash
+# 1. Sinh lại golden dataset (khuyến nghị chạy trước benchmark)
 python data/synthetic_gen.py
 
-# 3. Chạy Benchmark & tạo reports
+# 2. Chạy benchmark V1 vs V2
 python main.py
 
-# 4. Kiểm tra định dạng trước khi nộp
+# 3. Kiểm tra file nộp bài
 python check_lab.py
+```
 
-# 5. Chạy real agent liên quan đến lab
-python agent/real_agent.py --question "Vi sao phai danh gia retrieval truoc generation?"
+Sau khi chạy `python main.py`, hệ thống sẽ tạo hoặc cập nhật:
+- `reports/summary.json`
+- `reports/benchmark_results.json`
+- `analysis/failure_analysis.md`
 
-# Hoặc vào chế độ chat
+### 4. Chạy real agent riêng lẻ
+
+Hỏi một câu rồi thoát:
+
+```bash
+python agent/real_agent.py --question "Vì sao phải đánh giá retrieval trước generation?"
+```
+
+Chạy với model khác:
+
+```bash
+python agent/real_agent.py --model openai/gpt-4.1-mini --question "MRR là gì?"
+```
+
+Chạy interactive chat:
+
+```bash
 python agent/real_agent.py
 ```
 
-Mặc định benchmark hiện tại chạy:
-- `Agent_V1_Base`: agent mô phỏng để làm baseline
-- `Agent_V2_Optimized`: `RealEvaluationAgent` dùng OpenRouter
+### 5. Các mode benchmark đang hỗ trợ
 
-Cả hai agent hiện truy hồi qua ChromaDB thật, dùng embedding model từ OpenRouter.
+Mặc định trong code:
+- `Agent_V1_Base`: agent mô phỏng (`simulated`)
+- `Agent_V2_Optimized`: agent thật (`real`)
 
-Có thể đổi trong `.env`:
+Có thể đổi bằng `.env`.
+
+#### Mode A: Baseline mô phỏng, candidate là agent thật
+
 ```bash
 BENCHMARK_BASELINE_AGENT=simulated
 BENCHMARK_CANDIDATE_AGENT=real
@@ -112,22 +159,61 @@ OPENROUTER_AGENT_MODEL=google/gemini-2.5-flash
 OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
 ```
 
-Nếu muốn benchmark cả 2 phiên bản đều là agent thật, đặt:
+#### Mode B: Cả V1 và V2 đều là agent thật
+
 ```bash
 BENCHMARK_BASELINE_AGENT=real
 BENCHMARK_CANDIDATE_AGENT=real
-BENCHMARK_BASELINE_REAL_MODEL=google/gemini-2.5-flash
-BENCHMARK_CANDIDATE_REAL_MODEL=openai/gpt-4.1-mini
+BENCHMARK_BASELINE_REAL_MODEL=openai/gpt-4.1-mini
+BENCHMARK_CANDIDATE_REAL_MODEL=google/gemini-2.5-flash
 ```
 
----
+#### Mode C: Cố tình làm V1 yếu hơn để chứng minh V2 cải thiện
+
+```bash
+BENCHMARK_BASELINE_AGENT=real
+BENCHMARK_CANDIDATE_AGENT=real
+BENCHMARK_BASELINE_REAL_MODEL=openai/gpt-4.1-mini
+BENCHMARK_CANDIDATE_REAL_MODEL=google/gemini-2.5-flash
+BENCHMARK_BASELINE_RETRIEVAL_MODE=degraded
+BENCHMARK_BASELINE_FETCH_K=5
+BENCHMARK_BASELINE_TOP_K=3
+BENCHMARK_BASELINE_EXTRA_DELAY_SEC=0.25
+BENCHMARK_CANDIDATE_RETRIEVAL_MODE=normal
+BENCHMARK_CANDIDATE_TOP_K=4
+```
+
+### 6. Retrieval hiện đang chạy như thế nào
+
+- Vector DB dùng `ChromaDB` với thư mục persist cục bộ tại `.chroma/`
+- Dữ liệu được index từ `data/knowledge_base.py`
+- Embedding được gọi qua OpenRouter bằng `OPENROUTER_EMBEDDING_MODEL`
+- Nếu thiếu key hoặc lỗi mạng, retrieval sẽ fallback sang lexical search để pipeline không bị gãy
+
+Lưu ý: hiện tại index đang ở mức **document-level**, tức là mỗi document trong knowledge base là một record trong Chroma. Sau khi retrieve document, agent mới rerank tiếp ở mức fact bên trong document.
+
+### 7. Kiểm tra trước khi nộp
+
+Nên chạy lại đầy đủ chuỗi sau trước khi nộp:
+
+```bash
+python data/synthetic_gen.py
+python main.py
+python check_lab.py
+```
+
+Checklist file đầu ra cần có:
+- `reports/summary.json`
+- `reports/benchmark_results.json`
+- `analysis/failure_analysis.md`
+- `analysis/reflections/reflection_*.md`
 
 ## ⚠️ Lưu ý quan trọng
-- **Bắt buộc** chạy `python data/synthetic_gen.py` trước để tạo file `data/golden_set.jsonl`. File này không được commit sẵn trong repo.
-- Trước khi nộp bài, hãy chạy `python check_lab.py` để đảm bảo định dạng dữ liệu đã chuẩn. Bất kỳ lỗi định dạng nào dẫn đến việc script chấm điểm tự động không chạy được sẽ bị trừ 5 điểm thủ tục.
-- File `.env` chứa API Key **KHÔNG** được push lên GitHub.
-- `agent/real_agent.py` là agent thật dùng OpenRouter để trả lời các câu hỏi liên quan trực tiếp tới lab AI Evaluation.
-- Retrieval hiện không còn là lexical matching thuần nữa; hệ thống dùng ChromaDB local kết hợp embedding model qua OpenRouter. Nếu thiếu `OPENROUTER_API_KEY` hoặc lỗi mạng, retrieval sẽ fallback sang chế độ lexical để tránh làm vỡ pipeline.
+
+- `data/golden_set.jsonl` có thể sinh lại bất cứ lúc nào bằng `python data/synthetic_gen.py`.
+- File `.env` chứa API key, không được push lên GitHub.
+- Nếu muốn kết quả benchmark sát nhất với phần báo cáo, nên giữ nguyên `.env` trong suốt một lần chạy `main.py`.
+- `check_lab.py` chỉ là validator nhanh; quyết định chấm điểm thực tế vẫn phụ thuộc vào chất lượng report, reflection và logic benchmark.
 
 ---
 *Chúc nhóm bạn xây dựng được một Evaluation Factory thực sự mạnh mẽ!*
