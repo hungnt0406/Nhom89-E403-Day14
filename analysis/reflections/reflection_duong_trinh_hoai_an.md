@@ -17,6 +17,10 @@
 - Vấn đề khó nhất đã giải quyết: làm sao để dataset vừa đủ đa dạng để benchmark, vừa có ground truth retrieval rõ ràng để tính Hit Rate và MRR.
 - Trade-off đã chấp nhận: tôi chọn knowledge base nội bộ có cấu trúc xác định thay vì dùng nguồn ngoài. Cách này giảm độ mở của dữ liệu nhưng giúp benchmark ổn định, dễ tái lập và dễ chấm.
 
+## Giải trình kỹ thuật
+- Khái niệm kỹ thuật tôi hiểu rõ: MRR đo vị trí xuất hiện của document đúng đầu tiên trong ranking bằng công thức nghịch đảo thứ hạng 1-indexed. Vì vậy dataset bắt buộc phải có `expected_retrieval_ids` rõ ràng thì mới chấm được retrieval đúng theo chuẩn benchmark.
+- Position Bias liên quan thế nào tới lab: trong bài này, tài liệu đúng xuất hiện càng sớm thì agent càng dễ bám đúng context và MRR càng cao. Nếu document đúng bị đẩy xuống dưới, dù vẫn nằm trong top-k, chất lượng grounding và khả năng trả lời đúng vẫn có thể giảm.
+
 ## Bài học rút ra
 - Điều tôi học được: chất lượng benchmark phụ thuộc rất nhiều vào độ rõ ràng của ground truth, không chỉ ở phần answer mà cả ở phần retrieval.
 - Điều sẽ làm khác đi ở lần tiếp theo: tôi muốn bổ sung thêm case đa lượt và case có thông tin mâu thuẫn để kiểm tra agent sát thực tế hơn.
