@@ -60,6 +60,28 @@ Báo cáo 5 Whys phải chỉ ra được lỗi nằm ở đâu: Ingestion pipel
 # 1. Cài đặt dependencies
 pip install -r requirements.txt
 
+# 1.5. Cấu hình OpenRouter để dùng 3 judge API thật (khuyến nghị)
+# Tạo file .env với ít nhất:
+# OPENROUTER_API_KEY=sk-or-...
+# JUDGE_MODE=openrouter
+#
+# Retrieval hiện dùng vector DB thật:
+# - Embedding model qua OpenRouter: OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
+# - Index cục bộ: ChromaDB PersistentClient tại thư mục `.chroma/`
+#
+# Mặc định code sẽ dùng 3 model judge giá vừa phải qua OpenRouter:
+# - openai/gpt-4.1-mini
+# - anthropic/claude-3.5-haiku
+# - google/gemini-2.5-flash
+#
+# Có thể override bằng:
+# OPENROUTER_GPT_MODEL=...
+# OPENROUTER_CLAUDE_MODEL=...
+# OPENROUTER_GEMINI_MODEL=...
+# OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
+#
+# Nếu để JUDGE_MODE=auto thì có key sẽ gọi OpenRouter, không có key sẽ fallback offline.
+
 # 2. Tạo Golden Dataset (chạy trước khi benchmark)
 python data/synthetic_gen.py
 
@@ -68,6 +90,34 @@ python main.py
 
 # 4. Kiểm tra định dạng trước khi nộp
 python check_lab.py
+
+# 5. Chạy real agent liên quan đến lab
+python agent/real_agent.py --question "Vi sao phai danh gia retrieval truoc generation?"
+
+# Hoặc vào chế độ chat
+python agent/real_agent.py
+```
+
+Mặc định benchmark hiện tại chạy:
+- `Agent_V1_Base`: agent mô phỏng để làm baseline
+- `Agent_V2_Optimized`: `RealEvaluationAgent` dùng OpenRouter
+
+Cả hai agent hiện truy hồi qua ChromaDB thật, dùng embedding model từ OpenRouter.
+
+Có thể đổi trong `.env`:
+```bash
+BENCHMARK_BASELINE_AGENT=simulated
+BENCHMARK_CANDIDATE_AGENT=real
+OPENROUTER_AGENT_MODEL=google/gemini-2.5-flash
+OPENROUTER_EMBEDDING_MODEL=baai/bge-m3
+```
+
+Nếu muốn benchmark cả 2 phiên bản đều là agent thật, đặt:
+```bash
+BENCHMARK_BASELINE_AGENT=real
+BENCHMARK_CANDIDATE_AGENT=real
+BENCHMARK_BASELINE_REAL_MODEL=google/gemini-2.5-flash
+BENCHMARK_CANDIDATE_REAL_MODEL=openai/gpt-4.1-mini
 ```
 
 ---
@@ -76,6 +126,8 @@ python check_lab.py
 - **Bắt buộc** chạy `python data/synthetic_gen.py` trước để tạo file `data/golden_set.jsonl`. File này không được commit sẵn trong repo.
 - Trước khi nộp bài, hãy chạy `python check_lab.py` để đảm bảo định dạng dữ liệu đã chuẩn. Bất kỳ lỗi định dạng nào dẫn đến việc script chấm điểm tự động không chạy được sẽ bị trừ 5 điểm thủ tục.
 - File `.env` chứa API Key **KHÔNG** được push lên GitHub.
+- `agent/real_agent.py` là agent thật dùng OpenRouter để trả lời các câu hỏi liên quan trực tiếp tới lab AI Evaluation.
+- Retrieval hiện không còn là lexical matching thuần nữa; hệ thống dùng ChromaDB local kết hợp embedding model qua OpenRouter. Nếu thiếu `OPENROUTER_API_KEY` hoặc lỗi mạng, retrieval sẽ fallback sang chế độ lexical để tránh làm vỡ pipeline.
 
 ---
 *Chúc nhóm bạn xây dựng được một Evaluation Factory thực sự mạnh mẽ!*
