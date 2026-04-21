@@ -17,6 +17,10 @@
 - Vấn đề khó nhất đã giải quyết: đảm bảo benchmark không chết toàn bộ khi một case hoặc một request API bị lỗi tạm thời.
 - Trade-off đã chấp nhận: tôi ưu tiên continue-on-error và ghi nhận kết quả từng case thay vì dừng toàn pipeline ngay khi có exception. Cách này thực dụng hơn nhưng làm phần phân tích lỗi phải kỹ hơn.
 
+## Giải trình kỹ thuật
+- Khái niệm kỹ thuật tôi hiểu rõ: chi phí và chất lượng luôn có trade-off rõ trong benchmark LLM, vì tăng số model judge, tăng token context hoặc tăng retry thường cải thiện độ ổn định nhưng cũng làm cost và latency tăng. Vì vậy runner phải ghi riêng thời gian agent, thời gian judge và token usage để nhóm ra quyết định release hợp lý.
+- Position Bias liên quan thế nào tới lab: ranking không chỉ ảnh hưởng tới độ đúng mà còn ảnh hưởng gián tiếp tới hiệu năng, vì context đứng đầu thường được đưa vào prompt trước và có cơ hội chi phối answer mạnh hơn. Khi retriever trả về sai document ở vị trí đầu, nhóm vừa mất chất lượng vừa lãng phí token cho context ít giá trị.
+
 ## Bài học rút ra
 - Điều tôi học được: tối ưu chất lượng mà không đo latency và cost thì chưa đủ để ra quyết định release trong thực tế.
 - Điều sẽ làm khác đi ở lần tiếp theo: tôi muốn bổ sung retry có kiểm soát và thống kê p95 latency để phần performance đầy đủ hơn.
