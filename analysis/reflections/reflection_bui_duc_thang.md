@@ -17,6 +17,10 @@
 - Vấn đề khó nhất đã giải quyết: làm sao để real agent dùng API thật nhưng vẫn đủ an toàn cho quá trình demo và debug khi môi trường chạy có thể thiếu key hoặc lỗi mạng.
 - Trade-off đã chấp nhận: tôi giữ fallback và prompt cấu trúc tương đối đơn giản để agent ổn định trước, thay vì tối ưu quá mạnh cho chất lượng trong từng case riêng lẻ.
 
+## Giải trình kỹ thuật
+- Khái niệm kỹ thuật tôi hiểu rõ: real agent trong lab này phải cân bằng giữa grounding, chi phí và độ ổn định. Nếu prompt quá dài hoặc context quá rộng thì answer có thể tốt hơn một chút nhưng token usage, latency và xác suất lệch khỏi fact cũng tăng theo.
+- Position Bias liên quan thế nào tới lab: với agent dùng retrieved context, các tài liệu đứng đầu thường được model chú ý nhiều hơn khi tổng hợp answer. Vì vậy ranking sai ở vài vị trí đầu có thể khiến agent trả lời nghe hợp lý nhưng vẫn sai nguồn, đúng với failure mode mà nhóm đã phân tích trong `failure_analysis.md`.
+
 ## Bài học rút ra
 - Điều tôi học được: tài liệu cấu hình và failure analysis là phần rất quan trọng để biến một repo kỹ thuật thành một bài nộp có thể giải thích và bảo vệ được.
 - Điều sẽ làm khác đi ở lần tiếp theo: tôi muốn thêm một script smoke test riêng cho OpenRouter để kiểm tra key, model và quota trước khi chạy full benchmark.
