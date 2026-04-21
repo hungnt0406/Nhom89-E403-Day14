@@ -17,6 +17,10 @@
 - Vấn đề khó nhất đã giải quyết: làm sao để retrieval vừa có vector search thật, vừa vẫn có fallback đủ ổn định để nhóm debug được khi API hoặc embedding lỗi.
 - Trade-off đã chấp nhận: tôi giữ thêm lexical fallback bên cạnh vector retrieval. Cách này không “thuần vector DB” hoàn toàn nhưng giúp pipeline không gãy khi môi trường chạy thiếu mạng hoặc key.
 
+## Giải trình kỹ thuật
+- Khái niệm kỹ thuật tôi hiểu rõ: Hit Rate trả lời câu hỏi retriever có chạm được document đúng trong top-k hay không, còn MRR đo document đúng đó đứng sớm đến mức nào trong ranking. Hai chỉ số này phải đi cùng nhau vì chỉ biết “có chạm” thôi chưa đủ để đánh giá chất lượng thứ hạng.
+- Position Bias liên quan thế nào tới lab: đây là hiện tượng hệ thống ưu tiên quá mạnh các kết quả đứng đầu, khiến document ở vị trí trên có ảnh hưởng lớn hơn đến answer. Trong RAG của bài lab, nếu ranking đầu lệch nhẹ thì agent rất dễ bám nhầm context dù các document đúng vẫn còn ở phía sau.
+
 ## Bài học rút ra
 - Điều tôi học được: nếu retrieval không được đo độc lập thì rất khó xác định agent sai do search, do grounding hay do generation.
 - Điều sẽ làm khác đi ở lần tiếp theo: tôi muốn thêm hybrid reranking và synonym expansion để giảm semantic near-miss ở các câu hỏi paraphrase ngắn.
